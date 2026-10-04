@@ -3,25 +3,49 @@ package com.example.jungle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
-import com.example.jungle.engine.GameEngine
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.jungle.ui.GameScreen
+import com.example.jungle.ui.MainMenuScreen
+import com.example.jungle.ui.StartChoiceScreen
+import com.example.jungle.ui.theme.JungleTheme
+import com.example.jungle.ui.theme.vignette
+import com.example.jungle.ui.viewmodel.GameViewModel
+import com.example.jungle.ui.viewmodel.Screen
 
-/**
- * Временная заглушка: проверяет, что движок подключён и приложение собирается.
- * Настоящие экраны (MainMenu → StartChoice → GameScreen) добавим следующим шагом.
- */
+/** Единственная Activity: переключает экраны по состоянию ViewModel. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Сгенерируем тестовую партию, чтобы убедиться, что движок работает на устройстве
-        val state = GameEngine().newGame(starts = listOf(com.example.jungle.engine.Cell(1, 1)))
         setContent {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Джунгли: движок готов (игроков: ${state.players.size})")
+            JungleTheme {
+                val vm: GameViewModel = viewModel()
+                val ui = vm.ui
+
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .vignette()
+                        .systemBarsPadding()
+                ) {
+                    when (ui.screen) {
+                        Screen.MENU -> MainMenuScreen(onSolo = vm::openStartChoice)
+                        Screen.START_CHOICE -> StartChoiceScreen(onStart = vm::startGame, onBack = vm::backToMenu)
+                        Screen.GAME -> GameScreen(
+                            ui = ui,
+                            onDirection = vm::onDirection,
+                            onMode = vm::onMode,
+                            onConfirmWall = vm::confirmWall,
+                            onNewGame = vm::backToMenu
+                        )
+                    }
+                }
             }
         }
     }
