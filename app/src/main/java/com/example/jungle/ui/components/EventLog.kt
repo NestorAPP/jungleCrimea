@@ -14,16 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 
-/** Лог событий: последние 5 строк, свежая — снизу и ярче остальных. */
+/** Лог событий: последние 4 строки, свежая — снизу и ярче остальных. */
 @Composable
 fun EventLog(lines: List<String>, modifier: Modifier = Modifier) {
-    val shown = lines.takeLast(5)
+    val shown = lines.takeLast(4)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .heightIn(min = 130.dp)
+            .heightIn(min = 100.dp)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {

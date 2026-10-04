@@ -1,63 +1,85 @@
 package com.example.jungle.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.jungle.engine.Cell
 import com.example.jungle.engine.Direction
 import com.example.jungle.ui.components.ActionPanel
+import com.example.jungle.ui.components.BoardView
 import com.example.jungle.ui.components.EventLog
+import com.example.jungle.ui.components.IconPalette
+import com.example.jungle.ui.components.NotesArea
 import com.example.jungle.ui.components.StatusBar
 import com.example.jungle.ui.viewmodel.ActionMode
 import com.example.jungle.ui.viewmodel.GameUiState
+import com.example.jungle.ui.viewmodel.NoteTool
+import com.example.jungle.ui.viewmodel.NotesState
+import kotlin.math.roundToInt
 
 /**
- * Экран игры. Сверху — место под поле заметок (появится на следующем шаге),
- * ниже статус, лог событий и панель действий.
+ * Экран игры.
+ * Сверху вниз: статус → (прокручиваемая область: поле заметок, палитра, текстовые заметки)
+ * → лог событий → панель действий (всегда на виду).
  */
 @Composable
 fun GameScreen(
     ui: GameUiState,
+    notes: NotesState,
     onDirection: (Direction) -> Unit,
     onMode: (ActionMode) -> Unit,
     onConfirmWall: (Boolean) -> Unit,
+    onSelectTool: (NoteTool) -> Unit,
+    onCellTap: (Cell) -> Unit,
+    onWallEdgeTap: (Cell, Cell) -> Unit,
+    onNoteText: (Int, String) -> Unit,
     onNewGame: () -> Unit
 ) {
+    // Тряска экрана при ранении
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(ui.isWounded) {
+        if (ui.isWounded) {
+            repeat(6) { i ->
+                shake.animateTo(if (i % 2 == 0) 14f else -14f, tween(45))
+            }
+            shake.animateTo(0f, tween(45))
+        }
+    }
+
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier
+            .fillMaxSize()
+            .offset { IntOffset(shake.value.roundToInt(), 0) }
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         StatusBar(ui)
 
-        Box(
+        Column(
             Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                "Здесь будет поле заметок 4×4 и палитра иконок",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(16.dp)
-            )
+            BoardView(notes, onCellTap, onWallEdgeTap)
+            IconPalette(notes.tool, onSelectTool)
+            NotesArea(notes.texts, onNoteText)
         }
 
         EventLog(ui.log)

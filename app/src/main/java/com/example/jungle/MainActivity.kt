@@ -39,9 +39,14 @@ class MainActivity : ComponentActivity() {
                         Screen.START_CHOICE -> StartChoiceScreen(onStart = vm::startGame, onBack = vm::backToMenu)
                         Screen.GAME -> GameScreen(
                             ui = ui,
+                            notes = vm.notes,
                             onDirection = vm::onDirection,
                             onMode = vm::onMode,
                             onConfirmWall = vm::confirmWall,
+                            onSelectTool = vm::selectTool,
+                            onCellTap = vm::onNoteCellTap,
+                            onWallEdgeTap = vm::onWallEdgeTap,
+                            onNoteText = vm::setNoteText,
                             onNewGame = vm::backToMenu
                         )
                     }

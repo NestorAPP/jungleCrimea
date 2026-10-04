@@ -10,6 +10,7 @@ import com.example.jungle.engine.Cell
 import com.example.jungle.engine.Direction
 import com.example.jungle.engine.GameEngine
 import com.example.jungle.engine.GameState
+import com.example.jungle.engine.WallId
 
 enum class Screen { MENU, START_CHOICE, GAME }
 
@@ -45,6 +46,10 @@ class GameViewModel : ViewModel() {
     var ui by mutableStateOf(GameUiState())
         private set
 
+    /** Ручные заметки игрока (поле, иконки, стенки, текст). */
+    var notes by mutableStateOf(NotesState())
+        private set
+
     // ── навигация ──
 
     fun openStartChoice() {
@@ -54,6 +59,7 @@ class GameViewModel : ViewModel() {
     fun backToMenu() {
         game = null
         logLines.clear()
+        notes = NotesState()
         ui = GameUiState()
     }
 
@@ -62,11 +68,49 @@ class GameViewModel : ViewModel() {
         val g = engine.newGame(listOf(start))
         game = g
         logLines.clear()
+        notes = NotesState()
         logLines.add("Ты в джунглях. Карты нет — веди её сам.")
         g.log.filter { it.toPlayerId == null || it.toPlayerId == localPlayerId }
             .forEach { logLines.add(it.text) }
         ui = ui.copy(screen = Screen.GAME)
         refresh()
+    }
+
+    // ── заметки ──
+
+    fun selectTool(tool: NoteTool) {
+        notes = notes.copy(tool = if (notes.tool == tool) null else tool)
+    }
+
+    /** Тап по клетке поля заметок с выбранным инструментом. */
+    fun onNoteCellTap(cell: Cell) {
+        val n = notes
+        val tool = n.tool ?: return
+        notes = when (tool) {
+            NoteTool.WALL -> n // стенки ставятся по границам, см. onWallEdgeTap
+            NoteTool.ERASER -> when {
+                cell in n.cells -> n.copy(cells = n.cells - cell)
+                n.me == cell -> n.copy(me = null)
+                else -> n
+            }
+            NoteTool.ME -> n.copy(me = cell)
+            else -> n.copy(cells = n.cells + (cell to tool))
+        }
+    }
+
+    /** Тап по границе между двумя соседними клетками: стенка ставится/снимается. */
+    fun onWallEdgeTap(a: Cell, b: Cell) {
+        val n = notes
+        val id = WallId.of(a, b)
+        notes = when (n.tool) {
+            NoteTool.WALL -> n.copy(walls = if (id in n.walls) n.walls - id else n.walls + id)
+            NoteTool.ERASER -> if (id in n.walls) n.copy(walls = n.walls - id) else n
+            else -> n
+        }
+    }
+
+    fun setNoteText(index: Int, text: String) {
+        notes = notes.copy(texts = notes.texts.mapIndexed { i, old -> if (i == index) text.take(60) else old })
     }
 
     // ── действия ──
